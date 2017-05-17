@@ -1,0 +1,12 @@
+{
+    "name": "bluenest/php-file-classes",
+    "description": "File readers and writers",
+    "license": "All Rights Reserved",
+    "authors": [
+        {
+            "name": "Bryan",
+            "email": "bryan@bluenestdigital.com"
+        }
+    ],
+    "require": {}
+}
