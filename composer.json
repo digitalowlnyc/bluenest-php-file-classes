@@ -2,6 +2,7 @@
     "name": "bluenest/php-file-classes",
     "description": "File readers and writers",
     "license": "All Rights Reserved",
+    "version": "1.0",
     "authors": [
         {
             "name": "Bryan",
