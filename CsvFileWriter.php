@@ -23,7 +23,7 @@ class CsvFileWriter extends FileWriter
             }
         }
         $this->writeCsvLine($this->fileHandle, $lineArray, $this->colCount);
-        fputs($this->fileHandle, $this->NL);
+        $this->fputs($this->NL);
         $this->lineCount += 1;
     }
 
@@ -85,10 +85,10 @@ class CsvFileWriter extends FileWriter
         foreach($line as $val) {
             $i += 1;
             $val = '"' . $val . '"';
-            fputs($fp, $val);
+            $this->fputs($val);
 
             if($i !== $colCount) {
-                fputs($fp, ",");
+                $this->fputs(",");
             }
         }
     }

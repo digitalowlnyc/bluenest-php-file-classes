@@ -7,9 +7,13 @@ class FileWriter
 {
     protected $fileHandle;
     protected $lineCount = 0;
-    protected $NL = PHP_EOL;
+    protected $NL = "\r\n";
     private $fileName;
     private $dieIfFileExists = false;
+    private $hasOutputStarted = false;
+
+    private $buffer = array();
+    private $bufferSizeInLines;
 
     /**
      * FileWriter constructor.
@@ -27,12 +31,17 @@ class FileWriter
         }
 
         $this->fileHandle = fopen($filename, 'w');
+
         $this->fileName = $filename;
 
         if($this->fileHandle === false) {
             $this->fileHandle = null;
             die("Could not open file: " . $filename);
         }
+    }
+
+    public function setBufferSize($bufferSizeInLines) {
+        $this->bufferSizeInLines = $bufferSizeInLines;
     }
 
     /**
@@ -56,10 +65,20 @@ class FileWriter
     }
 
     function internalAddLine($data) {
-        fwrite($this->fileHandle, $data . $this->NL);
+        $this->fwrite($data . $this->NL);
+    }
+
+    function commitBuffer() {
+        //echo 'Committing buffer of size: ' . count($this->buffer) . PHP_EOL;
+        $data = implode('', $this->buffer);
+        fwrite($this->fileHandle, $data);
+        $this->buffer = array();
     }
 
     function close() {
+        if(count($this->buffer)) {
+            $this->commitBuffer();
+        }
         fclose($this->fileHandle);
     }
 
@@ -73,5 +92,29 @@ class FileWriter
 
     function getFileSize() {
         return filesize($this->fileName);
+    }
+
+    function fputs($data) {
+        $this->fwrite($data);
+    }
+
+    function fwrite($data) {
+        $this->hasOutputStarted = true;
+        if($this->bufferSizeInLines > 0) {
+            $this->buffer[] = $data;
+
+            if(count($this->buffer) >= $this->bufferSizeInLines) {
+                $this->commitBuffer();
+            }
+        } else {
+            fwrite($this->fileHandle, $data);
+        }
+    }
+
+    function writeBOM() {
+        if($this->hasOutputStarted) {
+            throw new \Exception('BOM must be at start of file, data already written to file');
+        }
+        fputs($this->fileHandle, "\xEF\xBB\xBF"); // UTF-8
     }
 }
