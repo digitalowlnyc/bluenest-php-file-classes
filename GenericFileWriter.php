@@ -1,12 +1,12 @@
-<?php 
+<?php
 
 /**
  * A buffered file writer
  */
-class FileWriter
+class GenericFileWriter
 {
-    protected $fileHandle;
-    protected $lineCount = 0;
+    /** @var FileStorageDriverIFace */
+    protected $storageDriverInstance;
     protected $NL = "\r\n";
     private $fileName;
     private $dieIfFileExists = false;
@@ -18,36 +18,20 @@ class FileWriter
     /**
      * FileWriter constructor.
      */
-    public function __construct($filename)
+    public function __construct($filename, $storageDriverInstance)
     {
-        if($this->dieIfFileExists && file_exists($filename)) {
+        $this->storageDriverInstance = $storageDriverInstance;
+        $this->storageDriverInstance->open(); // BND REVIEW
+
+        if($this->dieIfFileExists && $this->storageDriverInstance->fileExists()) {
             die("File already exists: " . $filename);
         }
 
-        $directory = pathinfo($filename, PATHINFO_DIRNAME);
-
-        if(!is_dir($directory)) {
-            throw new Exception("'" . $directory . "' is not a valid directory for writing, tried to write file: " . $filename);
-        }
-
-        $this->fileHandle = fopen($filename, 'w');
-
         $this->fileName = $filename;
-
-        if($this->fileHandle === false) {
-            $this->fileHandle = null;
-            die("Could not open file: " . $filename);
-        }
     }
 
     public function setBufferSize($bufferSizeInLines) {
         $this->bufferSizeInLines = $bufferSizeInLines;
-    }
-
-    public function setStreamBufferSize($bufferSizeInBytes) {
-        if(stream_set_read_buffer($this->fileHandle, $bufferSizeInBytes) !== 0) {
-            throw new \Exception("Failed to set buffering");
-        }
     }
 
     /**
@@ -55,7 +39,7 @@ class FileWriter
      * @param $data
      */
     function add($data) {
-        if(gettype($data) === "array") {
+        if(is_array($data)) {
             foreach($data as $line) {
                 $this->internalAddLine($line);
             }
@@ -70,14 +54,19 @@ class FileWriter
         }
     }
 
-    function internalAddLine($data) {
-        $this->fwrite($data . $this->NL);
+    function internalAddLine($data)
+    {  // BND revisit performance
+        if(is_string($data)) {
+            $this->fwrite($data . $this->NL);
+        } else {
+            $this->fwrite($data);
+        }
     }
 
     function commitBuffer() {
         echo 'Committing buffer of line size: ' . count($this->buffer) . PHP_EOL;
         $data = implode('', $this->buffer);
-        fwrite($this->fileHandle, $data);
+        $this->storageDriverInstance->fwrite($data);
         $this->buffer = array();
     }
 
@@ -85,7 +74,6 @@ class FileWriter
         if(count($this->buffer)) {
             $this->commitBuffer();
         }
-        fclose($this->fileHandle);
     }
 
     function getFileName() {
@@ -93,11 +81,7 @@ class FileWriter
     }
 
     function getLineCount() {
-        return $this->lineCount;
-    }
-
-    function getFileSize() {
-        return filesize($this->fileName);
+        return $this->storageDriverInstance->lineCount();
     }
 
     function fputs($data) {
@@ -113,14 +97,7 @@ class FileWriter
                 $this->commitBuffer();
             }
         } else {
-            fwrite($this->fileHandle, $data);
+            $this->storageDriverInstance->fwrite($data);
         }
-    }
-
-    function writeBOM() {
-        if($this->hasOutputStarted) {
-            throw new \Exception('BOM must be at start of file, data already written to file');
-        }
-        fputs($this->fileHandle, "\xEF\xBB\xBF"); // UTF-8
     }
 }
