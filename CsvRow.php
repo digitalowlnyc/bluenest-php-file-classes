@@ -14,8 +14,8 @@ class CsvRow implements ArrayAccess, Iterator
     protected $headerArray;
 
     function __construct($data, &$headerArray) {
-        $this->rowValues = $data;
-        $this->headerArray = $headerArray;
+        $this->rowValues = arrayValue($data);
+        $this->headerArray = arrayValue($headerArray);
     }
 
     public function &getDataRef() {
@@ -80,6 +80,9 @@ class CsvRow implements ArrayAccess, Iterator
      * @return object
      */
     public function offsetGet($key) {
+        if(!is_int($key) && !is_string($key)) {
+            throw new Exception("Unexpected key type: " . debugVar($key));
+        }
         if(!array_key_exists($key, $this->rowValues)) {
             return EMPTY_STRING;
         }
@@ -145,12 +148,16 @@ class CsvRow implements ArrayAccess, Iterator
         return ($key !== null && $key !== false);
     }
 
-    public function __toString() {
+    public function toArray() {
         $vals = [];
         foreach($this->headerArray as $header) {
             $vals[$header] = $this->offsetGet($header);
         }
 
-        return json_encode($vals, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        return $vals;
+    }
+
+    public function __toString() {
+        return json_encode($this->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
 }
