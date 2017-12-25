@@ -28,7 +28,7 @@ class CsvFileWriter extends FileWriter
     }
 
     /**
-     * @param $lineArray Takes values from array
+     * @param $lineArray array Takes values from array
      * @throws Exception
      */
     function addLineFromArray($lineArray) {
