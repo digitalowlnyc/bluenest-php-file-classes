@@ -12,10 +12,11 @@ class CsvRow implements ArrayAccess, Iterator
 {
     protected $rowValues; // holds key => $val for any columns that are not empty. Value may be array which includes metadata, or actual value.
     protected $headerArray;
+    protected $appendedValuesHeaderArray = array();
 
     function __construct($data, &$headerArray) {
-        $this->rowValues = arrayValue($data);
-        $this->headerArray = arrayValue($headerArray);
+        $this->rowValues = $data;
+        $this->headerArray = $headerArray;
     }
 
     public function &getDataRef() {
@@ -46,25 +47,42 @@ class CsvRow implements ArrayAccess, Iterator
 /*
     function __get($name)
     {
+        // return false, or potential alternative is to trigger an error
         if(!array_key_exists($name, $this->rowValues)) {
             return EMPTY_STRING;
         }
 
+
         return $this->rowValues[$name];
+    }
+
+
+    function __isset($name)
+    {
+        if(!array_key_exists($offset, $this->headerArray)) {
+            return false;
+        }
+
+        return !empty($this->offsetGet($name));
     }
 */
     public function offsetSet($offset, $value) {
+        if(!array_key_exists($offset, $this->headerArray)) {
+            $this->appendedValuesHeaderArray[$offset] = true;
+        }
         $this->rowValues[$offset] = $value;
     }
 
     /**
+     * This method is executed when using isset() or empty() on objects implementing ArrayAccess.
+     *
      * This actually checks if the column is present in the CSV file, not if this row has a value
      *
      * @param mixed $offset
      * @return bool
      */
     public function offsetExists($offset) {
-        return array_key_exists($offset, $this->headerArray);
+        return array_key_exists($offset, $this->headerArray) || array_key_exists($offset, $this->appendedValuesHeaderArray);
     }
 
     public function columnValueExists($offset) {
@@ -76,13 +94,10 @@ class CsvRow implements ArrayAccess, Iterator
     }
 
     /**
-     * @param mixed $key
-     * @return object
+     * @param string $key
+     * @return mixed
      */
     public function offsetGet($key) {
-        if(!is_int($key) && !is_string($key)) {
-            throw new Exception("Unexpected key type: " . debugVar($key));
-        }
         if(!array_key_exists($key, $this->rowValues)) {
             return EMPTY_STRING;
         }
