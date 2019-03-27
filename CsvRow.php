@@ -162,6 +162,16 @@ class CsvRow implements ArrayAccess, Iterator
         $key = key($this->headerArray);
         return ($key !== null && $key !== false);
     }
+    
+    public function getKeys($includeAppended = true) {
+    	$keys = $this->headerArray;
+
+    	if($includeAppended) {
+    		$keys = array_merge($keys, $this->appendedValuesHeaderArray);
+		}
+
+		return $keys;
+	}
 
     public function toArray() {
         $vals = [];
